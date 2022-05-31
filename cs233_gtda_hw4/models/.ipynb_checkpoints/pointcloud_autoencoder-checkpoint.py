@@ -49,7 +49,7 @@ class PointcloudAutoencoder(nn.Module):
             optimizer.zero_grad()
             point_cloud = data['point_cloud'].to(device)
             # Check dims
-            print(point_cloud.shape)
+            #print(point_cloud.shape)
             loss = chamfer_loss(self.reconstruct(point_cloud, device=device), point_cloud).mean()
             loss_meter.update(loss, point_cloud.size(0))
         
@@ -72,9 +72,9 @@ class PointcloudAutoencoder(nn.Module):
         :return: Left for students to decide
         """
         x = self.embed((loader.to(device)))
-        print('embed', x.shape)
+        #print('embed', x.shape)
         y = torch.squeeze(x)
-        print('squeezed', y.shape)
+        #print('squeezed', y.shape)
         y = self.decoder(y)
-        print('decoder', y.shape)
+        #print('decoder', y.shape)
         return x

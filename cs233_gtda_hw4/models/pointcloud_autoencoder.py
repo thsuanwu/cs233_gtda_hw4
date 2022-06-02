@@ -11,7 +11,6 @@ from torch import nn
 from ..in_out.utils import AverageMeter
 from ..losses.chamfer import chamfer_loss
 
-
 # In the unlikely case where you cannot use the JIT chamfer implementation (above) you can use the slower
 # one that is written in pure pytorch:
 #from ..losses.nn_distance import chamfer_loss
@@ -28,21 +27,10 @@ class PointcloudAutoencoder(nn.Module):
         self.decoder = decoder
 
     def forward(self, pointclouds):
-        # Takes pointclouds as input
         """Forward pass of the AE
             :param pointclouds: B x N x 3
         """
-        #print('input', pointclouds.shape)
-        x = torch.transpose(pointclouds, 1, 2)
-        #print('transposed for encoder', x.shape)
-        x = self.encoder(x)
-        #print('encoded', x.shape)
-        #x = torch.transpose(x, 1, 2)
-        x = x.squeeze(-1)
-        #print('squeezed for decoder', x.shape)
-        x = self.decoder(x)
-        #print('decoded', x.shape)
-        return x
+        return self.decoder(self.embed(pointclouds))
         
 
     def train_for_one_epoch(self, loader, optimizer, device='cuda'):
@@ -57,16 +45,14 @@ class PointcloudAutoencoder(nn.Module):
         
         ### My Work ###
         
-        for batch in loader:
+        for data in loader:
             optimizer.zero_grad()
-            
-            pointclouds = batch['point_cloud'].to(device)
-            loss = chamfer_loss(self.forward(pointclouds), pointclouds).mean()
-            #print(loss)
-            loss_meter.update(loss, len(loader))
-            
-            loss.backward()
-            optimizer.step()
+            point_cloud = data['point_cloud'].to(device)
+            # Check dims
+            #print(point_cloud.shape)
+            loss = chamfer_loss(self.reconstruct(point_cloud, device=device), point_cloud).mean()
+            loss_meter.update(loss, point_cloud.size(0))
+        
         return loss_meter.avg
     
     @torch.no_grad()
@@ -85,28 +71,10 @@ class PointcloudAutoencoder(nn.Module):
         :param device: cpu? cuda?
         :return: Left for students to decide
         """
-        recons = []
-        losses = []
-        for batch in loader:
-            pointclouds = batch["point_cloud"].to(device)
-            recon = self.forward(pointclouds)
-            loss = chamfer_loss(recon, pointclouds)
-            
-            losses.append(loss)
-            recons.append(recon)
-        return recons, losses
-    
-    def extract_latent_code(self, loader, device='cuda'):
-        latent_codes = []
-        test_names = []
-        for batch in loader:
-            pointclouds = batch["point_cloud"].to(device)
-            x = torch.transpose(pointclouds, 1, 2)
-            latent = self.embed(x)
-            latent = latent.squeeze(-1)
-            print(latent.shape)
-            latent_codes.append(latent)
-            test_name = batch['model_name']
-            test_names = test_names + test_name
-        latent_codes = torch.cat(latent_codes, dim=0)
-        return latent_codes, test_names
+        x = self.embed((loader.to(device)))
+        #print('embed', x.shape)
+        y = torch.squeeze(x)
+        #print('squeezed', y.shape)
+        y = self.decoder(y)
+        #print('decoder', y.shape)
+        return x

@@ -25,15 +25,15 @@ class PointNet(nn.Module):
         super(PointNet, self).__init__()
         self.layers = nn.Sequential(
             nn.Conv1d(init_feat_dim, 32, 1),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.Conv1d(32, 64, 1),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.Conv1d(64, 64, 1),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.Conv1d(64, 128, 1),
-            nn.ReLU(inplace=True),
+            nn.ReLU(),
             nn.Conv1d(128, 128, 1),
-            nn.ReLU(inplace=True)
+            #nn.ReLU()
         )
         self.pool = nn.MaxPool1d(1024)
         
@@ -43,8 +43,7 @@ class PointNet(nn.Module):
         Run forward pass of the PointNet model on a given point cloud.
         :param pointclouds: (B x N x 3) point cloud
         """
-        x = pointclouds.transpose(-1, -2) # transpose since nn.Conv1d expects the inputs to be dimension (batch_size, num_channels, num_points).
-        x = self.layers(x)
+        x = self.layers(pointclouds)
         #print('Pointnet, before pooling:',x.shape)
         x = self.pool(x)
         #print('Pointnet, after pooling:',x.shape)

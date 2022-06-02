@@ -8,6 +8,7 @@ Copyright (c) 2020 Panos Achlioptas (pachlioptas@gmail.com) & Stanford Geometric
 
 
 from torch import nn
+import torch
 
 
 class MLP(nn.Module):
@@ -30,11 +31,11 @@ class MLP(nn.Module):
         super(MLP, self).__init__()
         self.layers = nn.Sequential(
             nn.Linear(in_feat_dim, 256),
-            nn.ReLU(inplace=True),
+            non_linearity,
             nn.Linear(256, 384),
-            nn.ReLU(inplace=True),
-            nn.Linear(384, out_channels),
-            nn.ReLU(inplace=True)
+            non_linearity,
+            nn.Linear(384, out_channels*3),
+            #non_linearity
         )
         
     def forward(self, x):
@@ -43,5 +44,9 @@ class MLP(nn.Module):
         :param x: (B x in_feat_dim) point cloud
         """
         x = self.layers(x)
+        # Reshape for chamfer:  B x Na-points per point-cloud x 3
+        #x = torch.reshape(x, (x.shape[0], 1024, 3))
+        x = x.view(x.shape[0], 1024, 3)
+        #x = x.unsqueeze(1) # create extra dimension for resizing
         return x
         
